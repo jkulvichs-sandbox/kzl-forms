@@ -1,29 +1,30 @@
 <template>
-  <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js + TypeScript App"/>
-  </div>
+  <v-app>
+    <v-main>
+      <AuthDialog :show="showAuthDialog" @success="onLoggedIn" :auto="false" debug/>
+    </v-main>
+  </v-app>
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator'
-import HelloWorld from './components/HelloWorld.vue'
+import { Vue, Component } from 'vue-property-decorator'
+import AuthDialog from '@/components/AuthDialog/AuthDialog.vue'
+import { UserInfo } from '@/store/modules/client.types'
 
 @Component({
   components: {
-    HelloWorld
+    AuthDialog
   }
 })
-export default class App extends Vue {}
-</script>
+export default class App extends Vue {
+  // Show auth dialog and try to log in
+  showAuthDialog = true
 
-<style lang="scss">
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+  // When user logged in
+  onLoggedIn (userInfo: UserInfo) {
+    // Передавать username в форму теста
+    this.showAuthDialog = false
+    console.log(userInfo)
+  }
 }
-</style>
+</script>
