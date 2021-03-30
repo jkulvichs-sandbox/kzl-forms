@@ -48,6 +48,11 @@
             <v-icon left>mdi-shield-alert</v-icon>
             Авторизация
           </v-card-title>
+          <v-card-text v-if="debug">
+            <div style="color: red; background: rgba(255, 0, 0, .1)" class="text-caption pa-2 rounded text-center">
+              !!! DEBUG AUTH IS ENABLED !!!
+            </div>
+          </v-card-text>
           <v-card-text>
             Мы не смогли авторизовать вас автоматически, попробуйте вручную.
             Обычно, вам не потребуется ничего вводить, если вы уже зарегистрированы.
@@ -115,7 +120,7 @@ export default class AuthDialog extends Vue {
   isProgress = true
 
   // Logged in user info
-  userInfo?: UserInfo = null
+  userInfo: UserInfo | null = null
 
   // User image URL
   userImageURL = ''
@@ -150,7 +155,7 @@ export default class AuthDialog extends Vue {
         if (this.auto) {
           this.emitSuccess()
         } else {
-          this.userImageURL = await this.client.getUserAvatar(this.userInfo.user_email)
+          this.userImageURL = await this.client.getUserAvatar(this.userInfo?.user_email || '')
         }
         this.isProgress = false
         return
@@ -160,7 +165,7 @@ export default class AuthDialog extends Vue {
         if (this.auto) {
           this.emitSuccess()
         } else {
-          this.userImageURL = await this.client.getUserAvatar(this.userInfo.user_email)
+          this.userImageURL = await this.client.getUserAvatar(this.userInfo?.user_email || '')
         }
         this.isProgress = false
         return
@@ -227,7 +232,7 @@ export default class AuthDialog extends Vue {
 
     // DEBUG MODE
     if (this.debug) {
-      console.warn("DON'T FORGOT REMOVE THE AUTH DEBUG MODE")
+      console.warn("DON'T FORGET REMOVE THE AUTH DEBUG MODE")
       this.userImageURL = await this.client.getUserAvatar('jkulvichi@gmail.com')
       this.userInfo = {
         display_name: 'jkulvich',

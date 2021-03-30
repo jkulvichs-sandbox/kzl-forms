@@ -5,7 +5,7 @@
 import axios from 'axios'
 import localForage from 'localforage'
 import { Md5 } from 'ts-md5'
-import { UserInfo, Tokens, User } from './client.types'
+import { UserInfo, Tokens } from './client.types'
 import { Module, VuexModule, Action, Mutation } from 'vuex-module-decorators'
 
 @Module({
@@ -16,8 +16,8 @@ export default class Client extends VuexModule {
   // OAuth Authorization Data
   private readonly oauth = {
     portal: 'https://studyspark.kzlproject.xyz/oauth',
-    // redirectURI: 'https://studypark.kzlproject.xyz/forms',
-    redirectURI: 'http://localhost:8080',
+    redirectURI: 'https://studyspark.kzlproject.xyz/forms',
+    // redirectURI: 'http://localhost:8080',
     clientID: 't5f4RbxMfLnvHOeet2Kuc0pt48gPuNNYERK4I0Zk',
     clientSecret: 'xYta2vRVQam93VE3zmUwU1xoNRyTB0TR8xuHzPtP'
   }
