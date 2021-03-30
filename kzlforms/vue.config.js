@@ -5,6 +5,6 @@ module.exports = {
   devServer: {
     proxy: 'https://studyspark.kzlproject.xyz:80'
   },
-  publicPath: './forms',
+  publicPath: '/forms',
   assetsDir: './'
 }

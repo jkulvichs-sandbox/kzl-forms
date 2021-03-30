@@ -28,6 +28,14 @@ export default class Client extends VuexModule {
     refreshToken: ''
   }
 
+  @Mutation
+  setTokens (accessToken: string, refreshToken = '') {
+    this.tokens = {
+      accessToken,
+      refreshToken
+    }
+  }
+
   // __Returns OAuth Authentication Page URI.__
   // User must be redirected to this address and allow access for this app.
   // After that OAuth will redirect the user to _riderectURI_ and code must be taken from redirection URI _code_ param.
@@ -40,30 +48,41 @@ export default class Client extends VuexModule {
   // Fetches auth code from redirected URI or using _authCode_ as a code in other case.
   // Sends several REST requests to authorize user or throw exception.
   // If auth success then any other API's are available.
-  @Mutation
+  @Action
   async auth (authCode: string) {
+    // https://studyspark.kzlproject.xyz/forms/?code=n9klnhg3qnfzx0jndt4kly72s2cxzwqr9yoyhnol&iframe=break
     const code = (authCode.match(/code=([a-z0-9]+)/i) ?? ['', authCode])[1]
+    console.log('AUTH CODE', code)
 
-    // get access token by code
-    const resp = await axios.post(`${this.oauth.portal}/token`, {
-      code,
-      grant_type: 'authorization_code',
-      redirect_uri: this.oauth.redirectURI
-    }, {
-      auth: {
-        username: this.oauth.clientID,
-        password: this.oauth.clientSecret
-      }
-    })
+    if (!code || code.startsWith('http')) {
+      throw new Error(`"${code}" is not auth code`)
+    }
 
-    // save gain tokens
-    this.tokens.accessToken = resp.data.access_token
-    this.tokens.refreshToken = resp.data.refresh_token
+    try {
+      // get access token by code
+      const resp = await axios.post(`${this.oauth.portal}/token`, {
+        code,
+        grant_type: 'authorization_code',
+        redirect_uri: this.oauth.redirectURI
+      }, {
+        auth: {
+          username: this.oauth.clientID,
+          password: this.oauth.clientSecret
+        }
+      })
+
+      // save gain tokens
+      console.log('AUTH RESP', resp)
+      this.setTokens(resp.data.access_token, resp.data.refresh_token)
+    } catch (e) {
+      console.warn('OAuth auth', e)
+      throw e
+    }
   }
 
   // __Tries to Refresh Access Token.__
   // Uses existing _refreshToken_ to update _accessToken_.
-  @Mutation
+  @Action
   async refresh () {
     // get access token by refresh token
     const resp = await axios.post(`${this.oauth.portal}/token`, {
@@ -77,25 +96,25 @@ export default class Client extends VuexModule {
     })
 
     // save gain tokens
-    this.tokens.accessToken = resp.data.access_token
-    this.tokens.refreshToken = resp.data.refresh_token
+    this.setTokens(resp.data.access_token, resp.data.refresh_token)
   }
 
   // __Saves Auth Credentials__.
   // So you can use _loadCredentials_ later to restore the user session.
   @Action
   async saveCredentials (key = 'userAuth') {
+    console.log('CREDS SAVED', this.tokens)
     await localForage.setItem(key, this.tokens)
   }
 
   // __Loads Auth Credentials__.
   // So you can save it to use later with _saveCredentials_.
-  @Mutation
+  @Action
   async loadCredentials (key = 'userAuth') {
     const auth = await localForage.getItem(key) as Tokens
     if (auth) {
-      this.tokens.accessToken = auth.accessToken
-      this.tokens.refreshToken = auth.refreshToken
+      console.log('CREDS LOADED', auth)
+      this.setTokens(auth.accessToken, auth.refreshToken)
     }
   }
 
@@ -115,5 +134,13 @@ export default class Client extends VuexModule {
       responseType: 'blob'
     })
     return URL.createObjectURL(resp.data)
+  }
+
+  // __Log Out User__
+  @Action
+  async logout (key = 'userAuth') {
+    this.setTokens('', '')
+    await localForage.setItem(key, this.tokens)
+    console.log('LOGGED OUT', await localForage.getItem(key))
   }
 }

@@ -19,9 +19,12 @@
               <v-card-title>Ошибка сохранения формы</v-card-title>
               <v-card-subtitle>Попробуйте вернуться обновить форму</v-card-subtitle>
               <v-card-actions>
+                <v-btn @click="submitError = false">
+                  Сбросить форму
+                </v-btn>
                 <v-spacer></v-spacer>
-                <v-btn color="primary" @click="submitError = false">
-                  Обновить
+                <v-btn color="primary" @click="submit(savedForm)">
+                  Отправить ещё раз
                 </v-btn>
               </v-card-actions>
             </v-card>
@@ -33,6 +36,17 @@
             <v-card width="800" flat class="my-10">
               <v-card-title>Не удалось получить схему формы</v-card-title>
               <v-card-subtitle>{{ schemeURL || 'Пустое значение параметра scheme' }}</v-card-subtitle>
+            </v-card>
+          </div>
+        </template>
+
+        <template v-else-if="isSubmiting">
+          <div class="d-flex justify-center">
+            <v-card width="800" flat class="my-10">
+              <v-card-title>
+                <v-progress-circular indeterminate color="primary" class="mr-5"/>
+                Форма отправляется ...
+              </v-card-title>
             </v-card>
           </div>
         </template>
@@ -75,6 +89,12 @@ export default class App extends Vue {
   // If submitting error happened
   submitError = false
 
+  // Submiting
+  isSubmiting = false
+
+  // Saved form for send repeat
+  savedForm: FormDescriptor | null = null
+
   // When user logged in
   onLoggedIn (userInfo: UserInfo) {
     // Передавать username в форму теста
@@ -85,19 +105,24 @@ export default class App extends Vue {
   // Form Submitting
   async submit (form: FormDescriptor) {
     try {
+      this.submitError = false
+      this.savedForm = form
+      this.isSubmiting = true
       console.log('SUBMIT', this.userInfo?.user_login, form)
       await axios.post(`save.php?user=${this.userInfo?.user_login}`, form)
       this.submitted = true
     } catch {
       this.submitError = true
     }
+    this.isSubmiting = false
   }
 
   // Returns Scheme URL from query param
   get schemeURL () {
     const matches = window.location.search.match(/scheme=([^&]+)/i)
     if (matches && matches.length >= 2) {
-      return matches[1]
+      const username = this.userInfo?.user_login || ''
+      return matches[1].replace(/\[user]/ig, username)
     }
     return ''
   }

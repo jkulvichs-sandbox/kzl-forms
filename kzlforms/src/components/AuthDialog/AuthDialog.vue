@@ -54,8 +54,7 @@
             </div>
           </v-card-text>
           <v-card-text>
-            Мы не смогли авторизовать вас автоматически, попробуйте вручную.
-            Обычно, вам не потребуется ничего вводить, если вы уже зарегистрированы.
+            Обычно, вам не потребуется ничего вводить, если вы уже зарегистрированы на StudySpark
           </v-card-text>
           <v-card-actions>
             <v-btn color="primary" depressed block @click="authByOAuth()">
@@ -87,8 +86,11 @@
               </div>
             </div>
           </v-card-text>
-          <v-card-actions>
-            <v-btn v-if="!auto" class="mt-3" color="primary" depressed block @click="emitSuccess">Продолжить</v-btn>
+          <v-card-actions v-if="!auto">
+            <div class="d-flex flex-column justify-start" style="width: 100%">
+              <v-btn class="mt-3" x-small text @click="logout">Выход</v-btn>
+              <v-btn class="mt-3" color="primary" depressed block @click="emitSuccess">Продолжить</v-btn>
+            </div>
           </v-card-actions>
         </v-card>
 
@@ -177,6 +179,7 @@ export default class AuthDialog extends Vue {
   // Emit success when user logged in
   @Emit('success')
   emitSuccess () {
+    console.log('LOGGED IN AS', this.userInfo?.user_login)
     return this.userInfo
   }
 
@@ -206,21 +209,28 @@ export default class AuthDialog extends Vue {
       codeCheckCycle = setInterval(async () => {
         // If authWin at the redirectionURI
         if (/code=([a-z0-9]+)/i.test(authWin?.location.href)) {
-          try {
-            // Try to use redirectionURI to auth
-            await this.client.auth(authWin?.location.href)
-            this.userInfo = await this.client.getUserInfo()
-            clearInterval(codeCheckCycle)
-            if (this.auto) {
-              this.emitSuccess()
-            } else {
-              this.userImageURL = await this.client.getUserAvatar(this.userInfo.user_email)
-            }
-          } catch (e) {
-            if (!this.debug) this.authBug = "can't authorize, but code given"
-          }
+          clearInterval(codeCheckCycle)
+          // try {
+          //   // Try to use redirectionURI to auth
+          //   await this.client.auth(authWin?.location.href)
+          //   this.userInfo = await this.client.getUserInfo()
+          //   clearInterval(codeCheckCycle)
+          //   if (this.auto) {
+          //     this.emitSuccess()
+          //   } else {
+          //     this.userImageURL = await this.client.getUserAvatar(this.userInfo.user_email)
+          //   }
+          // } catch (e) {
+          //   if (!this.debug) this.authBug = "can't authorize, but code given"
+          // }
           // Delay before close
-          setTimeout(() => authWin.close(), 1000)
+          setTimeout(async () => {
+            // Trying to log in by restored code which stored by OAuth window
+            if (!(await this.authByStored())) {
+              if (!this.debug) this.authBug = "can't authorize, but code given"
+            }
+            authWin.close()
+          }, 1000)
         }
       }, 1000)
 
@@ -252,10 +262,12 @@ export default class AuthDialog extends Vue {
     try {
       await this.client.auth(window.location.href)
       this.userInfo = await this.client.getUserInfo()
+      this.userImageURL = await this.client.getUserAvatar(this.userInfo.user_email)
+      console.log('LOGGED IN BY CODE, CREDS STORED')
       await this.client.saveCredentials()
       return true
     } catch (e) {
-      console.error(e)
+      console.log('CANT AUTH BY CODE', e)
       return false
     }
   }
@@ -265,11 +277,19 @@ export default class AuthDialog extends Vue {
     try {
       await this.client.loadCredentials()
       this.userInfo = await this.client.getUserInfo()
+      this.userImageURL = await this.client.getUserAvatar(this.userInfo.user_email)
+      console.log('LOGGED IN BY STORED')
       return true
     } catch (e) {
-      console.error(e)
+      console.log('CANT AUTH BY STORED', e)
       return false
     }
+  }
+
+  // Logs out logged in user
+  async logout () {
+    this.userInfo = null
+    await this.client.logout()
   }
 }
 </script>
